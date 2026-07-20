@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Renty - Property Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>🏠 Renty</h2>
+          <div style="margin-top: 10px;">
+            <input type="text" id="user-name-input" placeholder="Your Initials/Name" maxlength="15" style="width: 100%; padding: 6px; font-size: 12px; border-radius: var(--border-radius); border: 1px dashed var(--sidebar-border); background: rgba(255,255,255,0.05); color: var(--text-primary); outline: none;" title="Used to track who adds properties and notes" />
+          </div>
+          <p>Your premium property tracker</p>
+        </div>
+
+        <div class="ingest-section">
+          <h2>Add Property</h2>
+          <form id="ingest-form">
+            <div class="file-upload-container">
+              <label for="file-input" class="file-upload-btn">Upload Webpage File (.html, .mhtml)</label>
+              <input type="file" id="file-input" accept=".html,.htm,.mhtml" class="hidden-file-input" />
+            </div>
+            <div class="divider">or paste code below</div>
+            <textarea id="html-input" placeholder="Paste webpage HTML here (Zoopla, Rightmove, SpareRoom)" required></textarea>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:-8px; margin-bottom:8px;">
+              <label for="force-price-freq" style="font-size:12px; font-weight:bold; color:var(--text-secondary);">Input Price As:</label>
+              <select id="force-price-freq" class="custom-select">
+                <option value="auto">Auto-Detect</option>
+                <option value="pcm">Force PCM (Monthly)</option>
+                <option value="pw">Force PW (Weekly)</option>
+              </select>
+            </div>
+            
+            <input type="text" id="address-input" placeholder="Address or Postcode (Optional Fallback)" />
+            <button type="submit" class="btn-primary">Extract & Add</button>
+          </form>
+          <div id="error-message" class="error hidden"></div>
+        </div>
+
+        <div class="properties-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 style="margin: 0;">Saved Properties (<span id="property-count">0</span>)</h2>
+            <div class="toggle-container" style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+              <span id="label-pcm" style="font-weight: bold; color: var(--primary);">PCM</span>
+              <label class="switch">
+                <input type="checkbox" id="price-toggle">
+                <span class="slider round"></span>
+              </label>
+              <span id="label-pw" style="color: var(--text-secondary);">PW</span>
+            </div>
+          </div>
+          <ul id="property-list">
+            <!-- Properties will be injected here -->
+          </ul>
+          
+          <button id="export-btn" class="btn-primary" style="margin-top: 16px; width: 100%; background-color: rgba(255,255,255,0.05); border: 1px dashed var(--sidebar-border); color: var(--text-secondary); font-size: 12px;">Export Locations to File</button>
+        </div>
+      </aside>
+      
+      <main class="map-container">
+        <div id="map"></div>
+      </main>
+
+      <!-- Note Modal -->
+      <div id="note-modal" class="modal hidden">
+        <div class="modal-content">
+          <span class="close-btn">&times;</span>
+          <h2 id="modal-title">Property Details</h2>
+          <p class="modal-price" id="modal-price"></p>
+          <a href="#" id="modal-link" target="_blank" class="link-out">View Original Listing</a>
+          
+          <div class="notes-container">
+            <label for="modal-address">Edit Location (Address or Postcode)</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <input type="text" id="modal-address" placeholder="Enter new address to move pin..." style="flex: 1;" />
+              <button id="update-location-btn" class="btn-primary" style="padding: 12px 16px;">Search</button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">(You can also drag the pin directly on the map!)</p>
+            
+            <label for="modal-notes">Your Notes:</label>
+            <textarea id="modal-notes" rows="4" placeholder="Add your personal notes here..."></textarea>
+            <div id="other-notes-container" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;"></div>
+            
+            <button id="save-notes-btn" class="btn-primary" style="margin-top: 15px; width: 100%;">Save Notes</button>
+          </div>
+          
+          <div class="modal-actions">
+            <button id="delete-property-btn" class="btn-danger">Delete Property</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
