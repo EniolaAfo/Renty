@@ -669,6 +669,13 @@ function saveData() {
   syncTimeout = setTimeout(async () => {
     isSyncing = true;
     try {
+        // Ensure every property has an ID (legacy JSON imports might lack them)
+        properties.forEach(prop => {
+            if (!prop.id) {
+                prop.id = 'prop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+        });
+        
         const cleanProperties = JSON.parse(JSON.stringify(properties));
         const chunkSize = 500;
         for (let i = 0; i < cleanProperties.length; i += chunkSize) {
