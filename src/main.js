@@ -1,9 +1,13 @@
 import './style.css'
 import L from 'leaflet'
+import { collection, onSnapshot, writeBatch, doc, deleteDoc } from 'firebase/firestore';
+import { db } from './firebase.js';
 
 // State
 let properties = JSON.parse(localStorage.getItem('renty_properties')) || [];
 let activePropertyId = null;
+let syncTimeout = null;
+let isSyncing = false;
 
 // User Initials Setup
 if (userNameInput) {
@@ -538,7 +542,7 @@ saveNotesBtn.addEventListener('click', () => {
   }
 });
 
-deletePropertyBtn.addEventListener('click', () => {
+deletePropertyBtn.addEventListener('click', async () => {
   if (!activePropertyId) return;
   
   // Remove marker from map
@@ -547,10 +551,16 @@ deletePropertyBtn.addEventListener('click', () => {
     delete markers[activePropertyId];
   }
   
-  properties = properties.filter(p => p.id !== activePropertyId);
+  const idToDelete = activePropertyId;
+  properties = properties.filter(p => p.id !== idToDelete);
   saveData();
   renderProperties();
   closeModal();
+  
+  // Explicitly delete from cloud immediately
+  try {
+      await deleteDoc(doc(db, 'locations', idToDelete));
+  } catch(e) {}
 });
 
 exportBtn.addEventListener('click', () => {
@@ -567,7 +577,30 @@ exportBtn.addEventListener('click', () => {
 });
 
 function saveData() {
+  // 1. Instantly save to local storage (for fast UI response and crash safety)
   localStorage.setItem('renty_properties', JSON.stringify(properties));
+  
+  // 2. Clear any existing timer
+  if (syncTimeout) clearTimeout(syncTimeout);
+  
+  // 3. Start a new 3-second timer
+  syncTimeout = setTimeout(async () => {
+    isSyncing = true;
+    try {
+        const batch = writeBatch(db);
+        properties.forEach(prop => {
+            const docRef = doc(db, 'locations', prop.id);
+            batch.set(docRef, prop);
+        });
+        await batch.commit();
+        console.log('Successfully synced batch to cloud!');
+    } catch (e) {
+        console.error('Failed to sync to cloud:', e);
+    } finally {
+        isSyncing = false;
+        syncTimeout = null;
+    }
+  }, 3000);
 }
 
 // Initial render
@@ -576,3 +609,27 @@ setTimeout(() => {
     map.invalidateSize();
     renderProperties();
 }, 100);
+
+// Setup real-time listener from Firestore
+const locationsRef = collection(db, 'locations');
+onSnapshot(locationsRef, (snapshot) => {
+    // Only accept cloud updates if we aren't currently waiting to push our own local changes
+    // This prevents the cloud from overwriting our local drag before it settles.
+    if (syncTimeout || isSyncing) return;
+    
+    let cloudProperties = [];
+    snapshot.forEach((doc) => {
+        cloudProperties.push(doc.data());
+    });
+    
+    if (cloudProperties.length > 0) {
+        properties = cloudProperties;
+        localStorage.setItem('renty_properties', JSON.stringify(properties));
+        
+        // Clean up old markers
+        Object.values(markers).forEach(m => map.removeLayer(m));
+        for (let key in markers) delete markers[key];
+        
+        renderProperties();
+    }
+});
