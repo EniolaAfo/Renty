@@ -22,13 +22,19 @@
 
         <div class="ingest-section">
           <h2>Add Property</h2>
-          <form id="ingest-form">
-            <div class="file-upload-container">
-              <label for="file-input" class="file-upload-btn">Upload Webpage File (.html, .mhtml)</label>
-              <input type="file" id="file-input" accept=".html,.htm,.mhtml" class="hidden-file-input" />
+          
+          <div style="display:flex; gap:10px; margin-bottom:15px;">
+             <button type="button" id="tab-auto" class="btn-primary" style="flex:1; padding:6px; font-size:12px;">Auto-Extract</button>
+             <button type="button" id="tab-manual" class="btn-primary" style="flex:1; padding:6px; font-size:12px; opacity:0.5;">Manual Entry</button>
+          </div>
+          
+          <form id="ingest-form" class="file-upload-container">
+            <div style="display:flex; align-items:center; justify-content:center; border:2px dashed var(--sidebar-border); border-radius:var(--border-radius); padding:16px; margin-bottom:12px; position:relative; cursor:pointer; background:rgba(255,255,255,0.02);">
+              <input type="file" id="file-input" accept=".html,.htm,.mhtml" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" />
+              <span class="file-upload-btn" style="color:var(--text-secondary); font-size:13px;">Upload HTML/MHTML File</span>
             </div>
             <div class="divider">or paste code below</div>
-            <textarea id="html-input" placeholder="Paste webpage HTML here (Zoopla, Rightmove, SpareRoom)" required></textarea>
+            <textarea id="html-input" placeholder="Paste webpage HTML here (Zoopla, Rightmove, SpareRoom)"></textarea>
             
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:-8px; margin-bottom:8px;">
               <label for="force-price-freq" style="font-size:12px; font-weight:bold; color:var(--text-secondary);">Input Price As:</label>
@@ -41,6 +47,21 @@
             
             <input type="text" id="address-input" placeholder="Address or Postcode (Optional Fallback)" />
             <button type="submit" class="btn-primary">Extract & Add</button>
+          </form>
+          
+          <form id="manual-form" class="file-upload-container" style="display:none;">
+            <input type="text" id="manual-title" placeholder="Property Name / Title" required style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: var(--border-radius); border: 1px solid var(--sidebar-border); background: var(--bg-dark); color: var(--text-primary); font-size: 13px;" />
+            <input type="text" id="manual-address" placeholder="Location / Address / Postcode" required style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: var(--border-radius); border: 1px solid var(--sidebar-border); background: var(--bg-dark); color: var(--text-primary); font-size: 13px;" />
+            
+            <div style="display:flex; gap: 10px; margin-bottom: 10px;">
+              <input type="number" id="manual-price" placeholder="Price (£)" required style="flex: 1; padding: 10px; border-radius: var(--border-radius); border: 1px solid var(--sidebar-border); background: var(--bg-dark); color: var(--text-primary); font-size: 13px;" />
+              <select id="manual-price-freq" class="custom-select" style="width: auto; padding: 10px;">
+                <option value="pcm">PCM</option>
+                <option value="pw">PW</option>
+              </select>
+            </div>
+            
+            <button type="submit" class="btn-primary">Add Manually</button>
           </form>
           <div id="error-message" class="error hidden"></div>
         </div>

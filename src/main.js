@@ -50,6 +50,12 @@ const userNameInput = document.getElementById('user-name-input');
 const errorMessage = document.getElementById('error-message');
 const propertyList = document.getElementById('property-list');
 const propertyCount = document.getElementById('property-count');
+const displayModeSelect = document.getElementById('display-mode');
+
+// Tabs & Manual Form
+const tabAuto = document.getElementById('tab-auto');
+const tabManual = document.getElementById('tab-manual');
+const manualForm = document.getElementById('manual-form');
 const noteModal = document.getElementById('note-modal');
 const closeModalBtn = document.querySelector('.close-btn');
 const modalTitle = document.getElementById('modal-title');
@@ -202,9 +208,9 @@ function parseHTML(htmlString, forceFormat = 'auto') {
   }
   
   let result = {
-    id: Date.now().toString(),
+    id: 'prop_' + Date.now(),
     link: extractedLink,
-    notes: '',
+    notes: {},
     lat: 51.505 + (Math.random() - 0.5) * 0.1, // Randomize slightly if fallback
     lng: -0.09 + (Math.random() - 0.5) * 0.1,
     title: 'Unknown Property',
@@ -321,6 +327,9 @@ ingestForm.addEventListener('submit', async (e) => {
   const expectedFormat = forcePriceFreq.value;
   
   try {
+    if (!html.trim()) {
+      throw new Error("Please upload a file or paste HTML code.");
+    }
     const newProperty = parseHTML(html, expectedFormat);
     
     // Attempt Geocoding if coordinates were not found
@@ -353,6 +362,66 @@ ingestForm.addEventListener('submit', async (e) => {
     console.error(error);
   }
 });
+
+// Tab Switching
+if (tabAuto && tabManual) {
+  tabAuto.addEventListener('click', () => {
+    tabAuto.style.opacity = '1';
+    tabManual.style.opacity = '0.5';
+    ingestForm.style.display = 'flex';
+    manualForm.style.display = 'none';
+    errorMessage.classList.add('hidden');
+  });
+  tabManual.addEventListener('click', () => {
+    tabManual.style.opacity = '1';
+    tabAuto.style.opacity = '0.5';
+    manualForm.style.display = 'flex';
+    ingestForm.style.display = 'none';
+    errorMessage.classList.add('hidden');
+  });
+}
+
+// Manual Form Submission
+if (manualForm) {
+  manualForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMessage.classList.add('hidden');
+    
+    const title = document.getElementById('manual-title').value;
+    const address = document.getElementById('manual-address').value;
+    const priceNum = parseInt(document.getElementById('manual-price').value, 10);
+    const priceFreq = document.getElementById('manual-price-freq').value;
+    
+    const newProperty = {
+      id: 'prop_' + Date.now(),
+      title: title,
+      price: '£' + priceNum.toLocaleString(),
+      priceNum: priceNum,
+      priceFreq: priceFreq,
+      link: '',
+      hasRealCoords: false,
+      notes: {},
+      addedBy: localStorage.getItem('renty_user') || ''
+    };
+    
+    // Geocode the address
+    const coords = await geocodeAddress(address);
+    if (coords) {
+      newProperty.lat = coords.lat;
+      newProperty.lng = coords.lng;
+      newProperty.hasRealCoords = true;
+    } else {
+      errorMessage.textContent = 'Could not find that location on the map. Please be more specific.';
+      errorMessage.classList.remove('hidden');
+      return;
+    }
+    
+    properties.push(newProperty);
+    saveData();
+    renderProperties();
+    manualForm.reset();
+  });
+}
 
 // Modal and Data Management
 function openModal(id) {
