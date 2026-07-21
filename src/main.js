@@ -55,6 +55,9 @@ const errorMessage = document.getElementById('error-message');
 const propertyList = document.getElementById('property-list');
 const propertyCount = document.getElementById('property-count');
 const displayModeSelect = document.getElementById('display-mode');
+const uploadProgress = document.getElementById('upload-progress');
+
+let pendingFiles = [];
 
 // Tabs & Manual Form
 const tabAuto = document.getElementById('tab-auto');
@@ -310,58 +313,136 @@ function parseHTML(htmlString, forceFormat = 'auto') {
 
 // File Upload Logic
 fileInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  pendingFiles = Array.from(e.target.files);
+  if (pendingFiles.length === 0) {
+      fileUploadBtn.textContent = 'Upload HTML/JSON Files';
+      htmlInput.style.display = 'block';
+      addressInput.style.display = 'block';
+      return;
+  }
   
-  fileUploadBtn.textContent = `Selected: ${file.name}`;
+  if (pendingFiles.length === 1 && pendingFiles[0].name.endsWith('.json')) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+          try {
+              const imported = JSON.parse(event.target.result);
+              if (Array.isArray(imported)) {
+                  if (confirm(`Found ${imported.length} properties in backup. Do you want to merge them into the database?`)) {
+                      properties = [...properties, ...imported.filter(ip => !properties.find(p => p.id === ip.id))];
+                      saveData();
+                      renderProperties();
+                      alert("Successfully restored from backup!");
+                  }
+              }
+          } catch(err) {
+              alert("Invalid JSON file.");
+          }
+          fileInput.value = '';
+          pendingFiles = [];
+          fileUploadBtn.textContent = 'Upload HTML/JSON Files';
+      };
+      reader.readAsText(pendingFiles[0]);
+      return;
+  }
   
-  const reader = new FileReader();
-  reader.onload = function(event) {
-    htmlInput.value = event.target.result;
-  };
-  reader.readAsText(file);
+  fileUploadBtn.textContent = `Selected: ${pendingFiles.length} file(s)`;
+  
+  if (pendingFiles.length === 1) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        htmlInput.value = event.target.result;
+      };
+      reader.readAsText(pendingFiles[0]);
+      htmlInput.style.display = 'block';
+      addressInput.style.display = 'block';
+  } else {
+      htmlInput.style.display = 'none';
+      addressInput.style.display = 'none';
+  }
 });
 
 ingestForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   errorMessage.classList.add('hidden');
   
-  const html = htmlInput.value;
-  const addressFallback = addressInput.value;
   const expectedFormat = forcePriceFreq.value;
   
   try {
-    if (!html.trim()) {
-      throw new Error("Please upload a file or paste HTML code.");
+    if (pendingFiles.length > 1) {
+        // MASS IMPORT
+        uploadProgress.classList.remove('hidden');
+        let successCount = 0;
+        
+        for (let i = 0; i < pendingFiles.length; i++) {
+            uploadProgress.textContent = `Processing file ${i + 1} of ${pendingFiles.length}...`;
+            const file = pendingFiles[i];
+            
+            const html = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = ev => resolve(ev.target.result);
+                reader.readAsText(file);
+            });
+            
+            const newProperty = parseHTML(html, expectedFormat);
+            
+            if (!newProperty.hasRealCoords) {
+                // Rate limit delay (1 second) before geocoding
+                await new Promise(r => setTimeout(r, 1000));
+                const coords = await geocodeAddress(newProperty.title.split('|')[0].split('-')[0].replace(/.*for rent in /i, '').replace(/.*to rent in /i, '').trim());
+                if (coords) {
+                    newProperty.lat = coords.lat;
+                    newProperty.lng = coords.lng;
+                    newProperty.hasRealCoords = true;
+                }
+            }
+            
+            newProperty.addedBy = localStorage.getItem('renty_user') || '';
+            properties.push(newProperty);
+            successCount++;
+        }
+        
+        saveData();
+        renderProperties();
+        
+        uploadProgress.classList.add('hidden');
+        alert(`Successfully imported ${successCount} properties!`);
+        
+    } else {
+        // SINGLE IMPORT
+        const html = htmlInput.value;
+        const addressFallback = addressInput.value;
+        if (!html.trim()) throw new Error("Please upload a file or paste HTML code.");
+        
+        const newProperty = parseHTML(html, expectedFormat);
+        
+        if (!newProperty.hasRealCoords) {
+          const coords = await geocodeAddress(addressFallback || newProperty.title.split('|')[0].split('-')[0].replace(/.*for rent in /i, '').replace(/.*to rent in /i, '').trim());
+          if (coords) {
+            newProperty.lat = coords.lat;
+            newProperty.lng = coords.lng;
+            newProperty.hasRealCoords = true;
+          }
+        }
+        
+        newProperty.addedBy = localStorage.getItem('renty_user') || '';
+        properties.push(newProperty);
+        saveData();
+        renderProperties();
+        
+        map.setView([newProperty.lat, newProperty.lng], 14, { animate: true });
     }
-    const newProperty = parseHTML(html, expectedFormat);
     
-    // Attempt Geocoding if coordinates were not found
-    if (!newProperty.hasRealCoords) {
-      const coords = await geocodeAddress(addressFallback || newProperty.title.split('|')[0].split('-')[0].replace(/.*for rent in /i, '').replace(/.*to rent in /i, '').trim());
-      if (coords) {
-        newProperty.lat = coords.lat;
-        newProperty.lng = coords.lng;
-        newProperty.hasRealCoords = true;
-      }
-    }
-    
-    // Add user tracking
-    newProperty.addedBy = localStorage.getItem('renty_user') || '';
-
-    properties.push(newProperty);
-    saveData();
-    renderProperties();
+    // RESET UI
     htmlInput.value = '';
     addressInput.value = '';
-    fileInput.value = ''; // Reset file input
-    fileUploadBtn.textContent = 'Upload Webpage File (.html, .mhtml)';
-    
-    // Jump to new property map marker smoothly
-    map.setView([newProperty.lat, newProperty.lng], 14, { animate: true });
+    fileInput.value = '';
+    pendingFiles = [];
+    fileUploadBtn.textContent = 'Upload HTML/JSON Files';
+    htmlInput.style.display = 'block';
+    addressInput.style.display = 'block';
     
   } catch (error) {
-    errorMessage.textContent = 'Failed to parse HTML. Please make sure you copied the page source correctly.';
+    errorMessage.textContent = 'Failed to process files. Ensure they are valid.';
     errorMessage.classList.remove('hidden');
     console.error(error);
   }
