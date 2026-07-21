@@ -669,12 +669,17 @@ function saveData() {
   syncTimeout = setTimeout(async () => {
     isSyncing = true;
     try {
-        const batch = writeBatch(db);
-        properties.forEach(prop => {
-            const docRef = doc(db, 'locations', prop.id);
-            batch.set(docRef, prop);
-        });
-        await batch.commit();
+        const cleanProperties = JSON.parse(JSON.stringify(properties));
+        const chunkSize = 500;
+        for (let i = 0; i < cleanProperties.length; i += chunkSize) {
+            const chunk = cleanProperties.slice(i, i + chunkSize);
+            const batch = writeBatch(db);
+            chunk.forEach(prop => {
+                const docRef = doc(db, 'locations', prop.id);
+                batch.set(docRef, prop);
+            });
+            await batch.commit();
+        }
         localStorage.removeItem('renty_pending_sync');
         console.log('Successfully synced batch to cloud!');
     } catch (e) {
