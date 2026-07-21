@@ -660,6 +660,7 @@ exportBtn.addEventListener('click', () => {
 function saveData() {
   // 1. Instantly save to local storage (for fast UI response and crash safety)
   localStorage.setItem('renty_properties', JSON.stringify(properties));
+  localStorage.setItem('renty_pending_sync', 'true');
   
   // 2. Clear any existing timer
   if (syncTimeout) clearTimeout(syncTimeout);
@@ -674,6 +675,7 @@ function saveData() {
             batch.set(docRef, prop);
         });
         await batch.commit();
+        localStorage.removeItem('renty_pending_sync');
         console.log('Successfully synced batch to cloud!');
     } catch (e) {
         console.error('Failed to sync to cloud:', e);
@@ -689,6 +691,11 @@ function saveData() {
 setTimeout(() => {
     map.invalidateSize();
     renderProperties();
+    
+    // Resume syncing if the user refreshed the page before a previous save finished
+    if (localStorage.getItem('renty_pending_sync')) {
+        saveData();
+    }
 }, 100);
 
 // Setup real-time listener from Firestore
@@ -696,7 +703,7 @@ const locationsRef = collection(db, 'locations');
 onSnapshot(locationsRef, (snapshot) => {
     // Only accept cloud updates if we aren't currently waiting to push our own local changes
     // This prevents the cloud from overwriting our local drag before it settles.
-    if (syncTimeout || isSyncing) return;
+    if (syncTimeout || isSyncing || localStorage.getItem('renty_pending_sync')) return;
     
     let cloudProperties = [];
     snapshot.forEach((doc) => {
