@@ -248,9 +248,12 @@ input:checked + .slider:before {
   display: none !important;
 }
 
+.sidebar {
+  overflow-y: auto;
+}
+
 .properties-section {
   flex: 1;
-  overflow-y: auto;
 }
 
 #property-list {
