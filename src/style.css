@@ -419,24 +419,62 @@ input:checked + .slider:before {
   background: var(--sidebar-bg);
 }
 
+.mobile-tabs {
+  display: none;
+}
+
 /* Mobile Responsive Layout */
 @media (max-width: 768px) {
   #app {
     flex-direction: column;
+    padding-bottom: 70px; /* space for tab bar */
   }
   .sidebar {
     width: 100%;
-    height: 55vh;
-    order: 2;
+    height: 100%;
+    order: 1;
     border-right: none;
-    border-top: 1px solid var(--sidebar-border);
   }
   .map-container {
     width: 100%;
-    height: 45vh;
+    height: 100%;
     flex: none;
     order: 1;
+    display: none; /* hidden by default, list is shown */
   }
+  
+  /* Mobile Tab Bar */
+  .mobile-tabs {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background: #1e293b;
+    border-top: 1px solid var(--sidebar-border);
+    z-index: 9999;
+  }
+  .mobile-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    gap: 4px;
+    cursor: pointer;
+  }
+  .mobile-tab.active {
+    color: var(--primary);
+  }
+  
+  /* Modal changes for mobile */
   .modal {
     top: 5vh;
     left: 5vw;
@@ -447,5 +485,6 @@ input:checked + .slider:before {
   .modal-content {
     width: 100%;
     max-width: 100%;
+    max-height: 80vh;
   }
 }

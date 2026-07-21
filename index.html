@@ -13,11 +13,22 @@
     <div id="app">
       <aside class="sidebar">
         <div class="sidebar-header">
-          <h2>🏠 Renty</h2>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 8px;">
+          <div>
+            <h1>Renty</h1>
+            <p>Your premium property tracker</p>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+            <label class="switch" title="Lock Pins (Prevent accidental dragging)">
+              <input type="checkbox" id="lock-pins-toggle" checked>
+              <span class="slider round"></span>
+            </label>
+            <span style="font-size: 10px; color: var(--text-secondary);">Lock Pins</span>
+          </div>
+        </div>
           <div style="margin-top: 10px;">
             <input type="text" id="user-name-input" placeholder="Your Initials/Name" maxlength="15" style="width: 100%; padding: 6px; font-size: 12px; border-radius: var(--border-radius); border: 1px dashed var(--sidebar-border); background: rgba(255,255,255,0.05); color: var(--text-primary); outline: none;" title="Used to track who adds properties and notes" />
           </div>
-          <p>Your premium property tracker</p>
         </div>
 
         <details class="ingest-section" style="border-bottom: 1px solid var(--sidebar-border); padding-bottom: 15px; margin-bottom: 15px;">
@@ -92,8 +103,20 @@
       
       <main class="map-container">
         <div id="map"></div>
-      </main>
+    </main>
 
+    <!-- Mobile Tab Bar -->
+    <div class="mobile-tabs">
+      <button id="mobile-tab-list" class="mobile-tab active">
+        <span style="font-size: 20px;">📋</span>
+        List View
+      </button>
+      <button id="mobile-tab-map" class="mobile-tab">
+        <span style="font-size: 20px;">🗺️</span>
+        Map View
+      </button>
+    </div>
+  </div>
       <!-- Note Modal -->
       <div id="note-modal" class="modal hidden">
         <div class="modal-content">

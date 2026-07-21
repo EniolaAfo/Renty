@@ -46,6 +46,11 @@ const addressInput = document.getElementById('address-input');
 const fileInput = document.getElementById('file-input');
 const fileUploadBtn = document.querySelector('.file-upload-btn');
 const forcePriceFreq = document.getElementById('force-price-freq');
+const lockPinsToggle = document.getElementById('lock-pins-toggle');
+const mobileTabList = document.getElementById('mobile-tab-list');
+const mobileTabMap = document.getElementById('mobile-tab-map');
+const sidebar = document.querySelector('.sidebar');
+const mapContainer = document.querySelector('.map-container');
 const priceToggle = document.getElementById('price-toggle');
 const labelPcm = document.getElementById('label-pcm');
 const labelPw = document.getElementById('label-pw');
@@ -136,7 +141,16 @@ function renderProperties() {
     
     // Add marker if not exists
     if (!markers[prop.id] && prop.lat && prop.lng) {
-      const marker = L.marker([prop.lat, prop.lng], { draggable: true }).addTo(map);
+      const isLocked = lockPinsToggle.checked;
+      const marker = L.marker([prop.lat, prop.lng], { 
+          draggable: !isLocked,
+          icon: L.divIcon({
+              className: 'custom-div-icon',
+              html: `<div style="background-color: ${prop.source === 'Rightmove' ? '#2563eb' : prop.source === 'Zoopla' ? '#7c3aed' : prop.source === 'SpareRoom' ? '#ea580c' : '#059669'}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.5);"></div>`,
+              iconSize: [24, 24],
+              iconAnchor: [12, 12]
+          })
+      }).addTo(map);
       marker.bindPopup(`<b>${prop.title}</b><br>${prop.price}`);
       marker.on('click', () => openModal(prop.id));
       
@@ -448,23 +462,54 @@ ingestForm.addEventListener('submit', async (e) => {
   }
 });
 
-// Tab Switching
-if (tabAuto && tabManual) {
-  tabAuto.addEventListener('click', () => {
+// UI Interactions
+tabAuto.addEventListener('click', () => {
     tabAuto.style.opacity = '1';
     tabManual.style.opacity = '0.5';
     ingestForm.style.display = 'flex';
     manualForm.style.display = 'none';
-    errorMessage.classList.add('hidden');
-  });
-  tabManual.addEventListener('click', () => {
+});
+
+tabManual.addEventListener('click', () => {
     tabManual.style.opacity = '1';
     tabAuto.style.opacity = '0.5';
     manualForm.style.display = 'flex';
     ingestForm.style.display = 'none';
-    errorMessage.classList.add('hidden');
-  });
+});
+
+// Mobile Tab Interactions
+if (mobileTabList && mobileTabMap) {
+    mobileTabList.addEventListener('click', () => {
+        mobileTabList.classList.add('active');
+        mobileTabMap.classList.remove('active');
+        sidebar.style.display = 'flex';
+        mapContainer.style.display = 'none';
+    });
+    
+    mobileTabMap.addEventListener('click', () => {
+        mobileTabMap.classList.add('active');
+        mobileTabList.classList.remove('active');
+        mapContainer.style.display = 'block';
+        sidebar.style.display = 'none';
+        
+        // Leaflet needs to know the container size changed when unhidden
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 100);
+    });
 }
+
+// Lock Pins Toggle Interaction
+lockPinsToggle.addEventListener('change', () => {
+    const isLocked = lockPinsToggle.checked;
+    Object.values(markers).forEach(marker => {
+        if (isLocked) {
+            marker.dragging.disable();
+        } else {
+            marker.dragging.enable();
+        }
+    });
+});
 
 // Manual Form Submission
 if (manualForm) {
